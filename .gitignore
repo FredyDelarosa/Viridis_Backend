@@ -7,6 +7,12 @@ yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
 
+# Ignore la carpeta db y todo su contenido
+db/
+
+# Ignore específicamente el archivo database.py dentro de la carpeta db
+db/database.py
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
