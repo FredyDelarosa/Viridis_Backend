@@ -20,17 +20,19 @@ class UsuarioReciclador(Base):
 
 class UsuarioEmpresa(Base):
     __tablename__ = "usuario_empresa"
+
     id_empresa = Column(UUID(as_uuid=True), ForeignKey("usuario.id_usuario", ondelete="CASCADE"), primary_key=True)
     nombre_empresa = Column(String, nullable=False)
     dueño_empresa = Column(String, nullable=False)
     direccion = Column(String, nullable=False)
     email = Column(String, unique=True, nullable=False)
-    telefono = Column(String)
-    estado = Column(String, nullable=False)
-    ciudad = Column(String)
-    municipio = Column(String)
+    telefono = Column(String, nullable=True)
+    estado = Column(String, nullable=False)  # Estado federativo
+    ciudad = Column(String, nullable=True)
+    municipio = Column(String, nullable=True)
     contraseña = Column(String, nullable=False)
-    imagen_empresa = Column(String, nullable=True)
+    imagen_empresa = Column(String, nullable=True)  # Nuevo campo
+    usuario_base = relationship("Usuario", backref="empresa", cascade="all, delete")
 
 
 class UsuarioAdministrador(Base):

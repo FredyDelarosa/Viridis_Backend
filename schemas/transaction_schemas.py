@@ -33,3 +33,8 @@ class TransaccionResponse(TransaccionBase):
 
     class Config:
         from_attributes = True  
+        
+class AcceptAndTransactPayload(BaseModel):
+    id_reciclador: UUID
+    id_solicitud: UUID
+    cantidad_reciclada: int

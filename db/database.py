@@ -22,7 +22,7 @@ chat_collection = mongo_db["chat"]
 
 SECRET_KEY = "Uxp_kw4wwka81PWP27LTukZqnY6OFTY5PwRcDvuyIYM"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 2
+ACCESS_TOKEN_EXPIRE_MINUTES = 80000
 
 try:
     with engine.connect() as connection:

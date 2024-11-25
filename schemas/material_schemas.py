@@ -24,24 +24,27 @@ class MaterialResponse(MaterialBase):
 class SolicitudMaterialBase(BaseModel):
     id_material: UUID
     cantidad_solicitada: int
+    precio: float  # Nuevo campo
+    descripcion: Optional[str]  # Nuevo campo
 
-class SolicitudMaterialCreate(BaseModel):
-    id_material: UUID
+class SolicitudMaterialCreate(SolicitudMaterialBase):
+    pass
+
+class SolicitudMaterialResponse(SolicitudMaterialBase):
+    id_solicitud: UUID
     cantidad_solicitada: int
+    precio: float
+    descripcion: str
+    fecha_solicitud: datetime
+    estado_solicitud: str
+    imagen_solicitud: Optional[str]
+    nombre_material: str
+    id_material: str
 
 class SolicitudMaterialUpdate(BaseModel):
     cantidad_solicitada: Optional[int] = None
     estado_solicitud: Optional[str] = None
-
-class SolicitudMaterialResponse(BaseModel):
-    id_solicitud: UUID
-    nombre_material: str
-    cantidad_solicitada: int
-    fecha_solicitud: datetime
-    estado_solicitud: str
-    nombre_empresa: str
-    imagen_solicitud: Optional[str] = None
-
+    
     class Config:
         from_attributes = True 
     

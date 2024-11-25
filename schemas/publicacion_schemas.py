@@ -3,13 +3,16 @@ from typing import Optional
 from datetime import datetime
 
 class PublicacionBase(BaseModel):
-    id_reciclador: str  # ID del reciclador
+    id_usuario: str
     descripcion: str
-    imagen_url: Optional[str] = None  # URL de la imagen, opcional
-    fecha_creacion: datetime = datetime.utcnow()
+
+class PublicacionCreate(PublicacionBase):
+    pass
 
 class PublicacionResponse(PublicacionBase):
-    id: str  # El ID de la publicación en formato de cadena
+    id: str
+    imagen_url: Optional[str]
+    fecha_creacion: datetime
 
     class Config:
         orm_mode = True

@@ -5,29 +5,33 @@ from schemas.user_schemas import UsuarioAdministradorCreate, UsuarioEmpresaCreat
 from uuid import UUID
 import uuid
 
-def create_usuario_empresa(db: Session, usuario_data: UsuarioEmpresaCreate):
+def create_usuario_empresa(db: Session, empresa_data: UsuarioEmpresaCreate):
     # Crear el usuario base en la tabla Usuario
-    db_usuario = Usuario(id_usuario=uuid.uuid4(), tipo_usuario="Empresa")
+    db_usuario = Usuario(tipo_usuario="Empresa")  # ID generado automáticamente por la DB
     db.add(db_usuario)
     db.commit()
-    db.refresh(db_usuario)
-    
+    db.refresh(db_usuario)  # Confirma el registro y obtiene el ID generado
+
+    # Crear el usuario específico en la tabla Usuario_Empresa
     db_empresa = UsuarioEmpresa(
-        id_empresa=db_usuario.id_usuario,
-        nombre_empresa=usuario_data.nombre_empresa,
-        dueño_empresa=usuario_data.dueño_empresa,
-        direccion=usuario_data.direccion,
-        email=usuario_data.email,
-        telefono=usuario_data.telefono,
-        estado=usuario_data.estado,
-        ciudad=usuario_data.ciudad,
-        municipio=usuario_data.municipio,
-        contraseña=get_password_hash(usuario_data.contraseña)
+        id_empresa=db_usuario.id_usuario,  # Usamos el ID generado en Usuario
+        nombre_empresa=empresa_data.nombre_empresa,
+        dueño_empresa=empresa_data.dueño_empresa,
+        direccion=empresa_data.direccion,
+        email=empresa_data.email,
+        telefono=empresa_data.telefono,
+        estado=empresa_data.estado,
+        ciudad=empresa_data.ciudad,
+        municipio=empresa_data.municipio,
+        contraseña=get_password_hash(empresa_data.contraseña)
     )
     db.add(db_empresa)
     db.commit()
-    db.refresh(db_empresa)
+    db.refresh(db_empresa)  # Refrescamos para obtener el registro final
+
     return db_empresa
+
+
 
 def get_usuario_empresa(db: Session, empresa_id: UUID):
     return db.query(UsuarioEmpresa).filter(UsuarioEmpresa.id_empresa == empresa_id).first()

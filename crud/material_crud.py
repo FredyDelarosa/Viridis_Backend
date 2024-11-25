@@ -1,6 +1,6 @@
 from typing import List
 from sqlalchemy.orm import Session
-from uuid import UUID, uuid4
+from uuid import UUID
 from models.material_models import Materiales, SolicitudMateriales
 from models.user_models import UsuarioEmpresa
 from schemas.material_schemas import MaterialCreate, MaterialUpdate, SolicitudMaterialResponse
@@ -42,11 +42,12 @@ def delete_material(db: Session, material_id: UUID):
 
 def create_solicitud_material(db: Session, solicitud_data: dict, image_url: str):
     solicitud = SolicitudMateriales(
-        id_solicitud=uuid4(),
         id_material=solicitud_data["id_material"],
         cantidad_solicitada=solicitud_data["cantidad_solicitada"],
+        precio=solicitud_data["precio"],  # Nuevo campo
+        descripcion=solicitud_data.get("descripcion"),  # Nuevo campo
+        imagen_solicitud=image_url,
         estado_solicitud="pendiente",
-        imagen_solicitud=image_url
     )
     db.add(solicitud)
     db.commit()

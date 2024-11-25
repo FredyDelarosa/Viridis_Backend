@@ -3,10 +3,11 @@ import os
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from uuid import UUID, uuid4
+from auth import get_password_hash
 from db.database import get_db
 from middlewares.auth_middleware import get_current_user
-from models.user_models import UsuarioEmpresa
-from schemas.user_schemas import UsuarioAdministradorCreate, UsuarioAdministradorResponse, UsuarioEmpresaCreate, UsuarioEmpresaResponse, UsuarioRecicladorCreate, UsuarioRecicladorResponse
+from models.user_models import UsuarioEmpresa, UsuarioAdministrador
+from schemas.user_schemas import UsuarioAdministradorCreate, UsuarioAdministradorResponse, UsuarioEmpresaCreate, UsuarioEmpresaResponse, UsuarioRecicladorCreate, UsuarioRecicladorResponse, UsuarioAdministradorUpdate
 from crud.user_crud import create_usuario_administrador, create_usuario_empresa, create_usuario_reciclador, delete_usuario_administrador, delete_usuario_reciclador, get_usuario_administrador, get_usuario_empresa, get_usuario_reciclador, get_usuarios_recicladores, update_usuario_empresa, delete_usuario_empresa
 
 router = APIRouter()
@@ -19,7 +20,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def create_empresa(usuario: UsuarioEmpresaCreate, db: Session = Depends(get_db)):
     return create_usuario_empresa(db, usuario)
 """
-@router.post("/empresa", response_model=UsuarioEmpresaResponse, status_code=201)
+@router.post("/", response_model=UsuarioEmpresaResponse, status_code=201)
 async def crear_usuario_empresa(
     nombre_empresa: str = Form(...),
     dueño_empresa: str = Form(...),
@@ -128,9 +129,16 @@ def read_administrador(administrador_id: UUID, db: Session = Depends(get_db)):
     return db_administrador
 
 @router.get("/administradores", response_model=list[UsuarioAdministradorResponse])
-def read_administradores(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), current_user = Depends(get_current_user)):
+def read_administradores(skip: int = 0, limit: int = 10, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
     if current_user.tipo_usuario != "administrador":
         raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta ruta")
+    
+    administradores = db.query(UsuarioAdministrador).offset(skip).limit(limit).all()
+    if not administradores:
+        return []  # Asegúrate de devolver una lista vacía si no hay administradores
+
+    return administradores
+
 
 @router.delete("/administrador/{administrador_id}", response_model=UsuarioAdministradorResponse)
 def delete_administrador(administrador_id: UUID, db: Session = Depends(get_db)):
@@ -138,3 +146,30 @@ def delete_administrador(administrador_id: UUID, db: Session = Depends(get_db)):
     if db_administrador is None:
         raise HTTPException(status_code=404, detail="Administrador no encontrado")
     return db_administrador
+
+@router.put("/administradores/{id_administrador}", response_model=UsuarioAdministradorResponse)
+def update_administrador(
+    id_administrador: UUID,
+    administrador: UsuarioAdministradorUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.tipo_usuario != "administrador":
+        raise HTTPException(status_code=403, detail="No tienes permiso para esta acción")
+
+    db_administrador = db.query(UsuarioAdministrador).filter(UsuarioAdministrador.id_administrador == id_administrador).first()
+    if not db_administrador:
+        raise HTTPException(status_code=404, detail="Administrador no encontrado")
+
+    # Solo actualiza los campos enviados
+    update_data = administrador.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        if field == "contraseña":
+            value = get_password_hash(value)  # Hash para contraseñas
+        setattr(db_administrador, field, value)
+
+    db.commit()
+    db.refresh(db_administrador)
+
+    return db_administrador
+

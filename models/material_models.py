@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
+from sqlalchemy import Column, Float, Integer, String, ForeignKey, DateTime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -20,9 +20,11 @@ class SolicitudMateriales(Base):
     id_solicitud = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     id_material = Column(UUID(as_uuid=True), ForeignKey("materiales.id_material"), nullable=False)
     cantidad_solicitada = Column(Integer, nullable=False)
-    imagen_solicitud = Column(String, nullable=True)  # Campo para la ruta de la imagen
+    precio = Column(Float, nullable=False)  # Nuevo campo
+    descripcion = Column(String, nullable=True)  # Nuevo campo
     fecha_solicitud = Column(DateTime, default=datetime.utcnow)
     estado_solicitud = Column(String, default="pendiente")
+    imagen_solicitud = Column(String, nullable=True)  # Campo para la ruta de la imagen
     
     # Relación con Materiales
     material = relationship("Materiales", backref="solicitudes")

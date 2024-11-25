@@ -54,6 +54,13 @@ class UsuarioAdministradorCreate(UsuarioAdministradorBase):
 
 class UsuarioAdministradorResponse(UsuarioAdministradorBase):
     id_administrador: UUID
+    contraseña: Optional[str] = "********"
+    
+class UsuarioAdministradorUpdate(BaseModel):
+    usuario: Optional[str]
+    email: Optional[EmailStr]
+    contraseña: Optional[str]
+
 
     class Config:
         from_attributes = True  

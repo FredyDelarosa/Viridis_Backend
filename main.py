@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,6 +14,9 @@ app.add_middleware(
     allow_methods=["*"],  # Puedes especificar métodos específicos como ["GET", "POST"]
     allow_headers=["*"],  # Puedes especificar headers específicos como ["Authorization", "Content-Type"]
 )
+
+app.mount("/uploads", StaticFiles(directory=os.path.join(os.getcwd(), "uploads")), name="uploads")
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.get("/")
 def inicio():
