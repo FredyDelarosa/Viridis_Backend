@@ -3,9 +3,11 @@ from datetime import datetime
 import os
 from uuid import uuid4
 from bson import ObjectId
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from requests import Session
+from sqlalchemy import text
 from schemas.publicacion_schemas import PublicacionBase, PublicacionResponse
-from db.database import publicaciones_collection
+from db.database import get_db, publicaciones_collection
 
 
 router = APIRouter()
@@ -45,25 +47,51 @@ async def crear_publicacion(
 
     return nueva_publicacion
 
+async def get_user_name(id_usuario: str, db: Session):
+    # Consulta en la tabla de recicladores
+    reciclador_query = f"SELECT usuario FROM usuario_reciclador WHERE id_reciclador = '{id_usuario}'"
+    reciclador_result = db.execute(text(reciclador_query)).fetchone()
+    if reciclador_result:
+        return reciclador_result[0]
+
+    # Consulta en la tabla de empresas
+    empresa_query = f"SELECT nombre_empresa FROM usuario_empresa WHERE id_empresa = '{id_usuario}'"
+    empresa_result = db.execute(text(empresa_query)).fetchone()
+    if empresa_result:
+        return empresa_result[0]
+
+    # Si no se encuentra en ninguna tabla
+    return "Usuario desconocido"
+
 
 @router.get("/", response_model=list[PublicacionResponse], status_code=200)
-async def obtener_todas_las_publicaciones():
+async def obtener_todas_las_publicaciones(db: Session = Depends(get_db)):
     publicaciones = []
     async for publicacion in publicaciones_collection.find().sort("fecha_creacion", -1):
         publicacion["id"] = str(publicacion["_id"])
         del publicacion["_id"]
+
+        # Obtener el nombre del usuario según su tipo
+        publicacion["nombre_usuario"] = await get_user_name(publicacion["id_usuario"], db)
+        
         publicaciones.append(publicacion)
     return publicaciones
+
 
 
 @router.get("/user", response_model=list[PublicacionResponse], status_code=200)
-async def obtener_publicaciones_por_usuario(id_usuario: str):
+async def obtener_publicaciones_por_usuario(id_usuario: str, db: Session = Depends(get_db)):
     publicaciones = []
     async for publicacion in publicaciones_collection.find({"id_usuario": id_usuario}).sort("fecha_creacion", -1):
         publicacion["id"] = str(publicacion["_id"])
-        del publicacion["_id"]  # Eliminar campo interno de MongoDB
+        del publicacion["_id"]
+
+        # Agregar el nombre del usuario basado en el tipo
+        publicacion["nombre_usuario"] = await get_user_name(id_usuario, db)
+
         publicaciones.append(publicacion)
     return publicaciones
+
 
 
 @router.put("/{id_publicacion}", status_code=200)
