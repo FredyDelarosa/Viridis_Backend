@@ -175,5 +175,3 @@ def update_administrador(
 
     return db_administrador
 
-
-
