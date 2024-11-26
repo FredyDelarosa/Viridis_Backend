@@ -57,10 +57,8 @@ class UsuarioAdministradorResponse(UsuarioAdministradorBase):
     contraseña: Optional[str] = "********"
     
 class UsuarioAdministradorUpdate(BaseModel):
-    usuario: Optional[str]
-    email: Optional[EmailStr]
-    contraseña: Optional[str]
-
+    usuario: Optional[str]  # Opcional
+    email: Optional[EmailStr]  # Opcional
 
     class Config:
-        from_attributes = True  
+        from_attributes = True
