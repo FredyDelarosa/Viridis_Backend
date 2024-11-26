@@ -161,15 +161,19 @@ def update_administrador(
     if not db_administrador:
         raise HTTPException(status_code=404, detail="Administrador no encontrado")
 
-    # Solo actualiza los campos enviados
+    # Extraer solo los campos enviados
     update_data = administrador.dict(exclude_unset=True)
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No se enviaron campos para actualizar.")
+
     for field, value in update_data.items():
-        if field == "contraseña":
-            value = get_password_hash(value)  # Hash para contraseñas
         setattr(db_administrador, field, value)
 
     db.commit()
     db.refresh(db_administrador)
 
     return db_administrador
+
+
 
