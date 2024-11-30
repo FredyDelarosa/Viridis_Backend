@@ -4,20 +4,16 @@ from datetime import datetime
 from typing import Optional
 
 class AnuncioBase(BaseModel):
+    id_empresa: str
     contenido_anuncio: str
-    imagen_url: Optional[HttpUrl] = None
 
 class AnuncioCreate(AnuncioBase):
     pass
 
-class AnuncioUpdate(BaseModel):
-    contenido_anuncio: Optional[str] = None
-    imagen_url: Optional[HttpUrl] = None
-
 class AnuncioResponse(AnuncioBase):
-    id_anuncio: UUID
-    id_empresa: UUID
+    id_anuncio: str
+    imagen_url: Optional[str]
     fecha_publicacion: datetime
 
     class Config:
-        from_attributes = True  # Configuración para permitir ORM
+        orm_mode = True
