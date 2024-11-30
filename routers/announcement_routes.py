@@ -1,38 +1,83 @@
 # app/routers/announcement_routes.py
-from fastapi import APIRouter, Depends, HTTPException
+import os
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
-from uuid import UUID
+from uuid import UUID, uuid4
 from db.database import get_db
-from schemas.announcement_schemas import (AnuncioCreate, AnuncioUpdate,AnuncioResponse)
-from crud.announcement_crud import (create_anuncio, get_anuncio, get_anuncios, update_anuncio, delete_anuncio)
+from models.announcemente_model import Anuncio
+from models.user_models import UsuarioEmpresa
+from schemas.announcement_schemas import (AnuncioResponse)
+from datetime import datetime
 
 router = APIRouter()
 
-@router.post("/anuncios", response_model=AnuncioResponse)
-def create_anuncio_route(id_empresa: UUID, anuncio: AnuncioCreate, db: Session = Depends(get_db)):
-    return create_anuncio(db, anuncio, id_empresa)
+UPLOAD_FOLDER = "uploads/anuncios"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-@router.get("/anuncios/{anuncio_id}", response_model=AnuncioResponse)
-def read_anuncio(anuncio_id: UUID, db: Session = Depends(get_db)):
-    db_anuncio = get_anuncio(db, anuncio_id)
-    if db_anuncio is None:
-        raise HTTPException(status_code=404, detail="Anuncio no encontrado")
-    return db_anuncio
+@router.post("/", response_model=AnuncioResponse, status_code=201)
+async def crear_anuncio(
+    id_empresa: UUID = Form(...),  # Cambia str por UUID
+    contenido_anuncio: str = Form(...),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    # Lógica del endpoint
+    empresa = db.query(UsuarioEmpresa).filter(UsuarioEmpresa.id_empresa == id_empresa).first()
+    if not empresa:
+        raise HTTPException(
+            status_code=400,
+            detail="La empresa especificada no existe."
+        )
 
-@router.get("/anuncios", response_model=list[AnuncioResponse])
-def read_anuncios(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return get_anuncios(db, skip=skip, limit=limit)
+    # Verificar que el archivo es una imagen
+    if not file.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="El archivo debe ser una imagen")
 
-@router.put("/anuncios/{anuncio_id}", response_model=AnuncioResponse)
-def update_anuncio_route(anuncio_id: UUID, anuncio: AnuncioUpdate, db: Session = Depends(get_db)):
-    db_anuncio = update_anuncio(db, anuncio_id, anuncio)
-    if db_anuncio is None:
-        raise HTTPException(status_code=404, detail="Anuncio no encontrado")
-    return db_anuncio
+    # Guardar la imagen
+    filename = f"{uuid4()}_{file.filename}"
+    file_path = os.path.join("uploads/anuncios", filename)
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+    image_url = f"/uploads/anuncios/{filename}"
 
-@router.delete("/anuncios/{anuncio_id}", response_model=AnuncioResponse)
-def delete_anuncio_route(anuncio_id: UUID, db: Session = Depends(get_db)):
-    db_anuncio = delete_anuncio(db, anuncio_id)
-    if db_anuncio is None:
-        raise HTTPException(status_code=404, detail="Anuncio no encontrado")
-    return db_anuncio
+    # Crear el anuncio en la base de datos
+    nuevo_anuncio = Anuncio(
+        id_anuncio=uuid4(),
+        id_empresa=id_empresa,
+        contenido_anuncio=contenido_anuncio,
+        imagen_url=image_url,
+        fecha_publicacion=datetime.utcnow()
+    )
+    db.add(nuevo_anuncio)
+    db.commit()
+    db.refresh(nuevo_anuncio)
+
+    # Construir el esquema de respuesta
+    return {
+        "id_anuncio": str(nuevo_anuncio.id_anuncio),  # Conversión explícita a cadena
+        "id_empresa": str(nuevo_anuncio.id_empresa),  # Conversión explícita a cadena
+        "contenido_anuncio": nuevo_anuncio.contenido_anuncio,
+        "imagen_url": nuevo_anuncio.imagen_url,
+        "fecha_publicacion": nuevo_anuncio.fecha_publicacion
+    }
+
+
+
+@router.get("/", response_model=list[AnuncioResponse], status_code=200)
+def obtener_anuncios(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    anuncios = db.query(Anuncio).offset(skip).limit(limit).all()
+
+    # Convertir los UUIDs a cadenas
+    response = [
+        {
+            "id_anuncio": str(anuncio.id_anuncio),
+            "id_empresa": str(anuncio.id_empresa),
+            "contenido_anuncio": anuncio.contenido_anuncio,
+            "imagen_url": anuncio.imagen_url,
+            "fecha_publicacion": anuncio.fecha_publicacion
+        }
+        for anuncio in anuncios
+    ]
+
+    return response
+
