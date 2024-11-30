@@ -9,10 +9,10 @@ app = FastAPI()
 # Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],  # Puedes especificar dominios específicos en lugar de ""
+    allow_origins=["http://localhost:4200"],  
     allow_credentials=True,
-    allow_methods=["*"],  # Puedes especificar métodos específicos como ["GET", "POST"]
-    allow_headers=["*"],  # Puedes especificar headers específicos como ["Authorization", "Content-Type"]
+    allow_methods=["*"], 
+    allow_headers=["*"],  
 )
 
 app.mount("/uploads", StaticFiles(directory=os.path.join(os.getcwd(), "uploads")), name="uploads")

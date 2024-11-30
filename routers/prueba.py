@@ -1,5 +1,6 @@
 # app/routers/user_routes.py
 import os
+from typing import List
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from uuid import UUID, uuid4
@@ -20,22 +21,15 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 def create_empresa(usuario: UsuarioEmpresaCreate, db: Session = Depends(get_db)):
     return create_usuario_empresa(db, usuario)
 """
-@router.post("/", response_model=UsuarioEmpresaResponse, status_code=201)
-async def crear_usuario_empresa(
-    nombre_empresa: str = Form(...),
-    dueño_empresa: str = Form(...),
-    direccion: str = Form(...),
-    email: str = Form(...),
-    telefono: str = Form(None),
-    estado: str = Form(...),
-    ciudad: str = Form(None),
-    municipio: str = Form(None),
-    contraseña: str = Form(...),
-    file: UploadFile = File(...),  # Imagen de prueba de la empresa
-    db: Session = Depends(get_db)
+
+@router.post("/empresa", response_model=UsuarioEmpresaResponse)
+async def create_empresa(
+    usuario: UsuarioEmpresaCreate = Depends(UsuarioEmpresaCreate.as_form),
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
 ):
     # Verificar que no exista una empresa con el mismo email
-    if db.query(UsuarioEmpresa).filter(UsuarioEmpresa.email == email).first():
+    if db.query(UsuarioEmpresa).filter(UsuarioEmpresa.email == usuario.email).first():
         raise HTTPException(status_code=400, detail="El email ya está registrado")
 
     # Guardar la imagen
@@ -44,27 +38,10 @@ async def crear_usuario_empresa(
     with open(file_path, "wb") as buffer:
         buffer.write(await file.read())
 
-    image_url = f"/uploads/empresas/{filename}"  # Ruta relativa para la imagen
+    # Crear usuario empresa
+    usuario.imagen_empresa = f"/uploads/empresas/{filename}"
+    return create_usuario_empresa(db, usuario)
 
-    # Crear el usuario empresa
-    nueva_empresa = UsuarioEmpresa(
-        id_empresa=str(uuid4()),
-        nombre_empresa=nombre_empresa,
-        dueño_empresa=dueño_empresa,
-        direccion=direccion,
-        email=email,
-        telefono=telefono,
-        estado=estado,
-        ciudad=ciudad,
-        municipio=municipio,
-        contraseña=contraseña,  # Considera encriptar esta contraseña
-        imagen_empresa=image_url
-    )
-    db.add(nueva_empresa)
-    db.commit()
-    db.refresh(nueva_empresa)
-
-    return nueva_empresa
 
 @router.get("/empresa/{empresa_id}", response_model=UsuarioEmpresaResponse)
 def read_empresa(empresa_id: UUID, db: Session = Depends(get_db)):
@@ -91,6 +68,55 @@ def delete_empresa(empresa_id: UUID, db: Session = Depends(get_db)):
     if db_empresa is None:
         raise HTTPException(status_code=404, detail="Empresa no encontrada")
     return db_empresa
+
+@router.get("/empresas/pendientes", response_model=List[UsuarioEmpresaResponse])
+def obtener_empresas_pendientes(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    empresas = (
+        db.query(UsuarioEmpresa)
+        .filter(UsuarioEmpresa.estatus == "pendiente")
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return empresas
+
+@router.post("/empresas/{id_empresa}/aprobar", response_model=UsuarioEmpresaResponse)
+def aprobar_empresa(
+    id_empresa: str,
+    db: Session = Depends(get_db),
+):
+    # Buscar la empresa
+    empresa = db.query(UsuarioEmpresa).filter(UsuarioEmpresa.id_empresa == id_empresa).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    if empresa.estatus == "aprobada":
+        raise HTTPException(status_code=400, detail="La empresa ya está aprobada")
+
+    # Cambiar el estatus
+    empresa.estatus = "aprobada"
+    db.commit()
+    db.refresh(empresa)
+    return empresa
+
+@router.post("/empresas/{id_empresa}/rechazar", response_model=UsuarioEmpresaResponse)
+def rechazar_empresa(
+    id_empresa: str,
+    db: Session = Depends(get_db),
+):
+    # Buscar la empresa
+    empresa = db.query(UsuarioEmpresa).filter(UsuarioEmpresa.id_empresa == id_empresa).first()
+    if not empresa:
+        raise HTTPException(status_code=404, detail="Empresa no encontrada")
+    
+    if empresa.estatus == "rechazada":
+        raise HTTPException(status_code=400, detail="La empresa ya está rechazada")
+
+    # Cambiar el estatus
+    empresa.estatus = "rechazada"
+    db.commit()
+    db.refresh(empresa)
+    return empresa
 
 @router.post("/reciclador", response_model=UsuarioRecicladorResponse)
 def create_reciclador(usuario: UsuarioRecicladorCreate, db: Session = Depends(get_db)):
