@@ -1,35 +1,48 @@
+from http.client import HTTPException
 from sqlalchemy.orm import Session
 from auth import get_password_hash
 from models.user_models import Usuario, UsuarioAdministrador, UsuarioEmpresa, UsuarioReciclador
 from schemas.user_schemas import UsuarioAdministradorCreate, UsuarioEmpresaCreate, UsuarioRecicladorCreate
 from uuid import UUID
 import uuid
+from sqlalchemy.exc import SQLAlchemyError
 
 def create_usuario_empresa(db: Session, empresa_data: UsuarioEmpresaCreate):
-    # Crear el usuario base en la tabla Usuario
-    db_usuario = Usuario(tipo_usuario="Empresa")  # ID generado automáticamente por la DB
-    db.add(db_usuario)
-    db.commit()
-    db.refresh(db_usuario)  # Confirma el registro y obtiene el ID generado
+    try:
+        # Crear el registro en la tabla `usuario`
+        usuario_base = Usuario(id_usuario=uuid.uuid4(), tipo_usuario="Empresa")
+        db.add(usuario_base)
+        db.commit()  # Confirmar la transacción
+        db.refresh(usuario_base)  # Refrescar para obtener el objeto completo con su ID
 
-    # Crear el usuario específico en la tabla Usuario_Empresa
-    db_empresa = UsuarioEmpresa(
-        id_empresa=db_usuario.id_usuario,  # Usamos el ID generado en Usuario
-        nombre_empresa=empresa_data.nombre_empresa,
-        dueño_empresa=empresa_data.dueño_empresa,
-        direccion=empresa_data.direccion,
-        email=empresa_data.email,
-        telefono=empresa_data.telefono,
-        estado=empresa_data.estado,
-        ciudad=empresa_data.ciudad,
-        municipio=empresa_data.municipio,
-        contraseña=get_password_hash(empresa_data.contraseña)
-    )
-    db.add(db_empresa)
-    db.commit()
-    db.refresh(db_empresa)  # Refrescamos para obtener el registro final
+        # Verificar que el registro en `usuario` se haya creado correctamente
+        if not usuario_base.id_usuario:
+            raise HTTPException(status_code=500, detail="Error al crear el usuario base.")
 
-    return db_empresa
+        # Crear el registro en la tabla `usuario_empresa`
+        nueva_empresa = UsuarioEmpresa(
+            id_empresa=usuario_base.id_usuario,
+            nombre_empresa=empresa_data.nombre_empresa,
+            dueño_empresa=empresa_data.dueño_empresa,
+            direccion=empresa_data.direccion,
+            email=empresa_data.email,
+            telefono=empresa_data.telefono,
+            estado=empresa_data.estado,
+            ciudad=empresa_data.ciudad,
+            municipio=empresa_data.municipio,
+            contraseña=get_password_hash(empresa_data.contraseña),
+            imagen_empresa=getattr(empresa_data, "imagen_empresa", None),  # Manejar campos opcionales
+        )
+        db.add(nueva_empresa)
+        db.commit()  # Confirmar la transacción
+        db.refresh(nueva_empresa)  # Refrescar el objeto para obtener el ID actualizado
+
+        return nueva_empresa
+
+    except SQLAlchemyError as e:
+        db.rollback()  # Revertir la transacción en caso de error
+        raise HTTPException(status_code=500, detail=f"Error al crear usuario empresa: {str(e)}")
+
 
 
 
