@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import OperationalError
 from motor.motor_asyncio import AsyncIOMotorClient
 
-SQLALCHEMY_DATABASE_URL = 'postgresql+psycopg2://postgress1@localhost/viridis_prueba?client_encoding=utf8'
+SQLALCHEMY_DATABASE_URL = 'postgresql+psycopg2://postgres:125645@viridisapi.integrador.xyz/viridis_multi?client_encoding=utf8'
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

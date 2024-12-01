@@ -34,3 +34,4 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     # Añadir tipo_usuario al usuario autenticado
     user.tipo_usuario = tipo_usuario
     return user
+
