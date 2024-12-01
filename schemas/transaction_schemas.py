@@ -38,3 +38,5 @@ class AcceptAndTransactPayload(BaseModel):
     id_reciclador: UUID
     id_solicitud: UUID
     cantidad_reciclada: int
+    
+
